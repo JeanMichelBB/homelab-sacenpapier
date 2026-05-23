@@ -13,6 +13,15 @@ spec:
       labels:
         app: homelab-frontend
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: homelab-frontend
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: frontend
           image: jeanmichelbb/homelab-fe:latest
