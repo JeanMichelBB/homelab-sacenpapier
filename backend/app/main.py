@@ -3,9 +3,9 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import nodes, services, monitoring, media, storage, gpu, network, k3s
+from .routers import nodes, k3s
 
-app = FastAPI(title="homelab-dashboard")
+app = FastAPI(title="homelab-dashboard", docs_url=None, redoc_url=None)
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,12 +15,6 @@ app.add_middleware(
 )
 
 app.include_router(nodes.router, prefix="/api")
-app.include_router(services.router, prefix="/api")
-app.include_router(monitoring.router, prefix="/api")
-app.include_router(media.router, prefix="/api")
-app.include_router(storage.router, prefix="/api")
-app.include_router(gpu.router, prefix="/api")
-app.include_router(network.router, prefix="/api")
 app.include_router(k3s.router, prefix="/api")
 
 
@@ -31,7 +25,11 @@ async def health():
 
 @app.get("/api/pod")
 async def pod_info():
-    return {
-        "hostname": os.environ.get("HOSTNAME", ""),
-        "node": os.environ.get("NODE_NAME", ""),
-    }
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        content={
+            "hostname": os.environ.get("HOSTNAME", ""),
+            "node": os.environ.get("NODE_NAME", ""),
+        },
+        headers={"Cache-Control": "no-store", "Connection": "close"},
+    )
