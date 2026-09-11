@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: homelab-backend-config
+  name: homelab-backend-config-example
   namespace: homelab-dashboard
 data:
   REDIS_URL: "redis://homelab-redis:6379"
