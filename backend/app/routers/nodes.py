@@ -1,13 +1,19 @@
 import asyncio
+import logging
 import httpx
 from fastapi import APIRouter
-from ..cache import cache_get, cache_set
+from ..cache import cache_get_stale, cache_set_stale
 from ..clients import prometheus
 from ..config import settings
 
 router = APIRouter()
 _KEY = "nodes"
 _TTL = 15
+_GLANCES_TIMEOUT = 2
+_TRUENAS_TIMEOUT = 3
+
+log = logging.getLogger(__name__)
+_refresh_lock = asyncio.Lock()
 
 
 async def _glances_node(name: str, url: str, role: str, tailscale_ip: str) -> dict:
@@ -16,10 +22,12 @@ async def _glances_node(name: str, url: str, role: str, tailscale_ip: str) -> di
         "online": False, "cpu_percent": None, "ram_percent": None, "uptime_seconds": None,
     }
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            cpu_r = await client.get(f"{url}/api/4/cpu/total")
-            mem_r = await client.get(f"{url}/api/4/mem/percent")
-            uptime_r = await client.get(f"{url}/api/4/uptime")
+        async with httpx.AsyncClient(timeout=_GLANCES_TIMEOUT) as client:
+            cpu_r, mem_r, uptime_r = await asyncio.gather(
+                client.get(f"{url}/api/4/cpu/total"),
+                client.get(f"{url}/api/4/mem/percent"),
+                client.get(f"{url}/api/4/uptime"),
+            )
             base["online"] = True
             cpu_val = cpu_r.json() if cpu_r.status_code == 200 else None
             mem_val = mem_r.json() if mem_r.status_code == 200 else None
@@ -63,7 +71,7 @@ async def _truenas_node() -> dict:
     }
     try:
         import httpx as hx
-        async with hx.AsyncClient(timeout=10, verify=False) as client:
+        async with hx.AsyncClient(timeout=_TRUENAS_TIMEOUT, verify=False) as client:
             r = await client.get(
                 f"{settings.truenas_url}/api/v2.0/system/info",
                 headers={"Authorization": f"Bearer {settings.truenas_api_key}"},
@@ -77,19 +85,14 @@ async def _truenas_node() -> dict:
     return base
 
 
-@router.get("/nodes")
-async def get_nodes():
-    cached = await cache_get(_KEY)
-    if cached:
-        return cached
-
+async def _fetch_all() -> list:
     ip_e = settings.tailscale_ip_elitedesk
     ip_pi = settings.tailscale_ip_tspi
     ip_win = settings.tailscale_ip_windows
     ip_o1 = settings.tailscale_ip_oci1
     ip_o2 = settings.tailscale_ip_oci2
 
-    results = await asyncio.gather(
+    return await asyncio.gather(
         _glances_node("tselitedesk", settings.glances_elitedesk_url,
                       "Main server — media, k3s control plane, gpu-proxy", ip_e),
         _glances_node("tspi", settings.glances_tspi_url,
@@ -100,5 +103,28 @@ async def get_nodes():
         _prometheus_node("oci-node-2", "k3s worker (OCI free tier)", ip_o2, f"{ip_o2}:9100"),
     )
 
-    await cache_set(_KEY, results, _TTL)
+
+async def _refresh_in_background() -> None:
+    if _refresh_lock.locked():
+        return
+    async with _refresh_lock:
+        try:
+            results = await _fetch_all()
+            await cache_set_stale(_KEY, results)
+        except Exception:
+            log.exception("background nodes refresh failed")
+
+
+@router.get("/nodes")
+async def get_nodes():
+    cached, is_fresh = await cache_get_stale(_KEY, _TTL)
+
+    if cached is not None:
+        if not is_fresh:
+            asyncio.create_task(_refresh_in_background())
+        return cached
+
+    # Cold start only (no cached value yet) — nothing to serve, so wait for the real fetch.
+    results = await _fetch_all()
+    await cache_set_stale(_KEY, results)
     return results
