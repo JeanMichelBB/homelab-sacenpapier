@@ -27,7 +27,9 @@ jobs:
           context: ./frontend
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: jeanmichelbb/homelab-fe:latest
+          tags: |
+            jeanmichelbb/homelab-fe:latest
+            jeanmichelbb/homelab-fe:${{ github.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
@@ -57,7 +59,9 @@ jobs:
           context: ./backend
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: jeanmichelbb/homelab-be:latest
+          tags: |
+            jeanmichelbb/homelab-be:latest
+            jeanmichelbb/homelab-be:${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
