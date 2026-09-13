@@ -2,6 +2,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from .routers import nodes, k3s
 
@@ -16,6 +17,8 @@ app.add_middleware(
 
 app.include_router(nodes.router, prefix="/api")
 app.include_router(k3s.router, prefix="/api")
+
+Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 
 @app.get("/api/health")

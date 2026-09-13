@@ -2,6 +2,7 @@ import asyncio
 import logging
 import httpx
 from fastapi import APIRouter
+from prometheus_client import Gauge
 from truenas_api_client import Client as TrueNASClient
 from ..cache import cache_get_stale, cache_set_stale
 from ..clients import prometheus
@@ -15,6 +16,17 @@ _TRUENAS_TIMEOUT = 3
 
 log = logging.getLogger(__name__)
 _refresh_lock = asyncio.Lock()
+
+device_online = Gauge(
+    "homelab_device_online",
+    "Whether a monitored homelab device is currently reachable (1) or not (0)",
+    ["device"],
+)
+
+
+def _update_device_metrics(results: list) -> None:
+    for device in results:
+        device_online.labels(device=device["name"]).set(1 if device["online"] else 0)
 
 
 async def _glances_node(name: str, url: str, role: str, tailscale_ip: str) -> dict:
@@ -114,6 +126,7 @@ async def _refresh_in_background() -> None:
         try:
             results = await _fetch_all()
             await cache_set_stale(_KEY, results)
+            _update_device_metrics(results)
         except Exception:
             log.exception("background nodes refresh failed")
 
@@ -130,4 +143,5 @@ async def get_nodes():
     # Cold start only (no cached value yet) — nothing to serve, so wait for the real fetch.
     results = await _fetch_all()
     await cache_set_stale(_KEY, results)
+    _update_device_metrics(results)
     return results
