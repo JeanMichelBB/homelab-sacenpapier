@@ -136,6 +136,7 @@ async def get_nodes():
     cached, is_fresh = await cache_get_stale(_KEY, _TTL)
 
     if cached is not None:
+        _update_device_metrics(cached)
         if not is_fresh:
             asyncio.create_task(_refresh_in_background())
         return cached
