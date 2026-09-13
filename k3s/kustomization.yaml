@@ -9,8 +9,15 @@ resources:
   - doppler-operator.yaml
   - image-updater-crds.yaml
   - image-updater.yaml
+  - image-updater-cr.yaml
   - doppler-secret.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - redis-deployment.yaml
   - ingress.yaml
+
+images:
+  - name: jeanmichelbb/homelab-fe
+    newTag: latest
+  - name: jeanmichelbb/homelab-be
+    newTag: latest

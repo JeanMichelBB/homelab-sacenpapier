@@ -1,0 +1,30 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: homelab-sacenpapier
+  namespace: argocd
+spec:
+  applicationRefs:
+    - namePattern: homelab-sacenpapier
+      images:
+        - alias: frontend
+          imageName: jeanmichelbb/homelab-fe
+          commonUpdateSettings:
+            updateStrategy: newest-build
+            allowTags: "regexp:^[0-9a-f]{40}$"
+          manifestTargets:
+            kustomize:
+              name: jeanmichelbb/homelab-fe
+        - alias: backend
+          imageName: jeanmichelbb/homelab-be
+          commonUpdateSettings:
+            updateStrategy: newest-build
+            allowTags: "regexp:^[0-9a-f]{40}$"
+          manifestTargets:
+            kustomize:
+              name: jeanmichelbb/homelab-be
+      writeBackConfig:
+        method: "git:secret:argocd/git-creds-github"
+        gitConfig:
+          branch: main
+          writeBackTarget: "kustomization:."
