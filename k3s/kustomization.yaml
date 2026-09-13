@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - rbac.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - redis-deployment.yaml
