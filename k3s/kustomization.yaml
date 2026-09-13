@@ -18,6 +18,8 @@ resources:
 
 images:
   - name: jeanmichelbb/homelab-fe
-    newTag: latest
+    newTag: a6773e70d612390019c359bf9036eb8f2d80f4dd
+    newName: jeanmichelbb/homelab-fe
   - name: jeanmichelbb/homelab-be
-    newTag: latest
+    newTag: a6773e70d612390019c359bf9036eb8f2d80f4dd
+    newName: jeanmichelbb/homelab-be
