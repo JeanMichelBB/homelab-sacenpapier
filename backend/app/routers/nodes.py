@@ -2,6 +2,7 @@ import asyncio
 import logging
 import httpx
 from fastapi import APIRouter
+from truenas_api_client import Client as TrueNASClient
 from ..cache import cache_get_stale, cache_set_stale
 from ..clients import prometheus
 from ..config import settings
@@ -62,6 +63,14 @@ async def _prometheus_node(name: str, role: str, tailscale_ip: str, instance: st
     return base
 
 
+def _truenas_sync(ip: str, api_key: str) -> dict | None:
+    with TrueNASClient(uri=f"wss://{ip}/api/current", verify_ssl=True, call_timeout=_TRUENAS_TIMEOUT) as c:
+        if not c.call("auth.login_with_api_key", api_key):
+            return None
+        info = c.call("system.info")
+        return {"uptime_seconds": info.get("uptime_seconds")}
+
+
 async def _truenas_node() -> dict:
     ip = settings.tailscale_ip_truenas
     base = {
@@ -70,16 +79,10 @@ async def _truenas_node() -> dict:
         "online": False, "cpu_percent": None, "ram_percent": None, "uptime_seconds": None,
     }
     try:
-        import httpx as hx
-        async with hx.AsyncClient(timeout=_TRUENAS_TIMEOUT, verify=False) as client:
-            r = await client.get(
-                f"{settings.truenas_url}/api/v2.0/system/info",
-                headers={"Authorization": f"Bearer {settings.truenas_api_key}"},
-            )
-            if r.status_code == 200:
-                data = r.json()
-                base["online"] = True
-                base["uptime_seconds"] = data.get("uptime_seconds")
+        result = await asyncio.to_thread(_truenas_sync, ip, settings.truenas_api_key)
+        if result is not None:
+            base["online"] = True
+            base["uptime_seconds"] = result["uptime_seconds"]
     except Exception:
         pass
     return base
