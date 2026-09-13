@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rbac.yaml
+  - prometheus-rbac.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - redis-deployment.yaml
