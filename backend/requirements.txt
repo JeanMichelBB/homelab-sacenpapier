@@ -6,3 +6,8 @@ redis[asyncio]
 pydantic
 pydantic-settings
 git+https://github.com/truenas/api_client.git@TS-25.10.3
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-httpx
+opentelemetry-instrumentation-redis

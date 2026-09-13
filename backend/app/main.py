@@ -2,9 +2,11 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from .routers import nodes, k3s
+from .tracing import setup_tracing
 
 app = FastAPI(title="homelab-dashboard", docs_url=None, redoc_url=None)
 
@@ -19,6 +21,9 @@ app.include_router(nodes.router, prefix="/api")
 app.include_router(k3s.router, prefix="/api")
 
 Instrumentator().instrument(app).expose(app, include_in_schema=False)
+
+setup_tracing("homelab-backend")
+FastAPIInstrumentor.instrument_app(app)
 
 
 @app.get("/api/health")
