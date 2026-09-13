@@ -24,8 +24,6 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
           envFrom:
-            - configMapRef:
-                name: homelab-backend-config
             - secretRef:
                 name: homelab-backend-secrets
 ---
