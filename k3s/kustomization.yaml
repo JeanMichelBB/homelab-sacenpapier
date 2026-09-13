@@ -5,6 +5,8 @@ resources:
   - namespace.yaml
   - rbac.yaml
   - prometheus-rbac.yaml
+  - doppler-operator-crds.yaml
+  - doppler-operator.yaml
   - doppler-secret.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
