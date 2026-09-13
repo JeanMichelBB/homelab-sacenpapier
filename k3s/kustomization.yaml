@@ -7,6 +7,8 @@ resources:
   - prometheus-rbac.yaml
   - doppler-operator-crds.yaml
   - doppler-operator.yaml
+  - image-updater-crds.yaml
+  - image-updater.yaml
   - doppler-secret.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
