@@ -18,7 +18,7 @@ resources:
 
 images:
   - name: jeanmichelbb/homelab-fe
-    newTag: a6773e70d612390019c359bf9036eb8f2d80f4dd
+    newTag: b083af1d5eec8772de62068fc30d498815dd38bf
     newName: jeanmichelbb/homelab-fe
   - name: jeanmichelbb/homelab-be
     newTag: 0129e630475953d2d60f8f799229d624e400cb05
