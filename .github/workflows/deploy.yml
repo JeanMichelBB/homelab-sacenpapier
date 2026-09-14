@@ -22,6 +22,24 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Build image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          platforms: linux/amd64
+          load: true
+          tags: homelab-fe:scan
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Scan image for critical vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: homelab-fe:scan
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
       - uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -44,6 +62,24 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          platforms: linux/amd64
+          load: true
+          tags: homelab-be:scan
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Scan image for critical vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: homelab-be:scan
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
 
       - uses: docker/build-push-action@v6
         with:
