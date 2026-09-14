@@ -1,0 +1,90 @@
+# Default-deny ingress for the homelab-dashboard namespace (backend, frontend, redis).
+# Egress is intentionally left open -- this backend reaches many external Tailscale IPs
+# (Glances, TrueNAS, Prometheus, the k3s API, tspi for tracing), and restricting egress would
+# mean allow-listing all of those individually. Same rationale as shared-mysql's policy for the
+# default namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: homelab-dashboard
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-to-homelab-frontend
+  namespace: homelab-dashboard
+spec:
+  podSelector:
+    matchLabels:
+      app: homelab-frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 80
+---
+# /metrics shares the API port (8000) -- see Apercu's networkpolicy.yaml (in the Apercu repo)
+# for the full explanation of why Prometheus's NodePort scrape needs the node flannel-gateway
+# ipBlocks below rather than a tighter "Traefik only" rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-homelab-backend
+  namespace: homelab-dashboard
+spec:
+  podSelector:
+    matchLabels:
+      app: homelab-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        - ipBlock:
+            cidr: 10.42.0.1/32
+        - ipBlock:
+            cidr: 10.42.1.1/32
+        - ipBlock:
+            cidr: 10.42.3.1/32
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# Only homelab-backend uses this Redis instance.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-redis
+  namespace: homelab-dashboard
+spec:
+  podSelector:
+    matchLabels:
+      app: homelab-redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: homelab-backend
+      ports:
+        - protocol: TCP
+          port: 6379

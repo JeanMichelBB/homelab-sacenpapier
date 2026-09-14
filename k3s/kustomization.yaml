@@ -15,6 +15,7 @@ resources:
   - frontend-deployment.yaml
   - redis-deployment.yaml
   - ingress.yaml
+  - networkpolicy.yaml
 
 images:
   - name: jeanmichelbb/homelab-fe
