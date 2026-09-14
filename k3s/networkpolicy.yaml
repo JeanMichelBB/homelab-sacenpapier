@@ -36,9 +36,14 @@ spec:
         - protocol: TCP
           port: 80
 ---
-# /metrics shares the API port (8000) -- see Apercu's networkpolicy.yaml (in the Apercu repo)
-# for the full explanation of why Prometheus's NodePort scrape needs the node flannel-gateway
-# ipBlocks below rather than a tighter "Traefik only" rule.
+# /metrics shares the API port (8000) with the main app, and Prometheus's NodePort scrape
+# needs to reach it. Tried scoping ingress to Traefik + the node flannel-gateway IPs the SNAT'd
+# scrape traffic appears to use (confirmed via this pod's own access log) -- that broke real
+# Prometheus scraping in practice (verified live: the target went down within one scrape
+# interval of the policy syncing), most likely because kube-router's NetworkPolicy enforcement
+# evaluates the connection at a different point in the iptables chain than where the app sees
+# the post-NAT source address, so the ipBlock never actually matched the real packet. Left this
+# port unrestricted rather than ship a rule that looks tight but silently breaks monitoring.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -51,20 +56,7 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: kube-system
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: traefik
-        - ipBlock:
-            cidr: 10.42.0.1/32
-        - ipBlock:
-            cidr: 10.42.1.1/32
-        - ipBlock:
-            cidr: 10.42.3.1/32
-      ports:
+    - ports:
         - protocol: TCP
           port: 8000
 ---
