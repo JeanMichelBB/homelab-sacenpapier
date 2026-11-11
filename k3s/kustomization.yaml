@@ -22,5 +22,5 @@ images:
     newTag: 632c0e2d7854e0e65c36e4250a9f5ab6c9122989
     newName: jeanmichelbb/homelab-fe
   - name: jeanmichelbb/homelab-be
-    newTag: b083af1d5eec8772de62068fc30d498815dd38bf
+    newTag: 632c0e2d7854e0e65c36e4250a9f5ab6c9122989
     newName: jeanmichelbb/homelab-be
